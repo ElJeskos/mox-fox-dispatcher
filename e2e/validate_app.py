@@ -21,6 +21,7 @@ def attach_error_collection(page, errors: list[str]) -> None:
 def add_observation_without_viewport_jump(page) -> None:
     rows = page.locator(".observation-row")
     previous_count = rows.count()
+    selected_fox_before = page.locator(".score-breakdown h3").inner_text()
     add_observation = page.get_by_role("button", name="Добавить запись")
     add_observation.evaluate("element => element.scrollIntoView({ block: 'center' })")
     page.wait_for_timeout(100)
@@ -29,6 +30,7 @@ def add_observation_without_viewport_jump(page) -> None:
 
     add_observation.click()
     expect(rows).to_have_count(previous_count + 1)
+    expect(page.locator(".score-breakdown h3")).to_have_text(selected_fox_before)
 
     add_button_after = add_observation.bounding_box()
     assert add_button_after is not None

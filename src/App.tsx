@@ -374,7 +374,6 @@ export function App() {
       time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
     };
     setObservations((current) => [...current, next]);
-    setSelectedFoxId(next.fox_id);
   };
 
   const addObservationFromJournal = () => {
