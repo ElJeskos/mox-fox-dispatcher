@@ -18,6 +18,26 @@ def attach_error_collection(page, errors: list[str]) -> None:
     page.on("console", collect_console)
 
 
+def add_observation_without_viewport_jump(page) -> None:
+    rows = page.locator(".observation-row")
+    previous_count = rows.count()
+    add_observation = page.get_by_role("button", name="Добавить запись")
+    add_observation.evaluate("element => element.scrollIntoView({ block: 'center' })")
+    page.wait_for_timeout(100)
+    add_button_before = add_observation.bounding_box()
+    assert add_button_before is not None
+
+    add_observation.click()
+    expect(rows).to_have_count(previous_count + 1)
+
+    add_button_after = add_observation.bounding_box()
+    assert add_button_after is not None
+    assert abs(add_button_after["y"] - add_button_before["y"]) <= 1, (
+        "Adding an observation moved the journal controls in the viewport: "
+        f"before={add_button_before}, after={add_button_after}"
+    )
+
+
 def validate_desktop(browser) -> list[str]:
     errors: list[str] = []
     page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
@@ -179,8 +199,7 @@ def validate_desktop(browser) -> list[str]:
 
     page.get_by_role("button", name="Лисий диспетчер").click()
     page.get_by_role("button", name="Вернуть исходные").click()
-    page.get_by_role("button", name="Добавить запись").click()
-    expect(page.locator(".observation-row")).to_have_count(6)
+    add_observation_without_viewport_jump(page)
     page.locator(".observations").scroll_into_view_if_needed()
     page.wait_for_timeout(150)
     page.screenshot(path=REVIEW_DIR / "desktop-data.png")
@@ -303,6 +322,7 @@ def validate_standalone(browser) -> list[str]:
     page.locator('[data-observation-id="obs_001"] .prey-toggle').click()
     page.get_by_role("spinbutton", name="Подозрительность obs_003").fill("1")
     expect(page.locator(".leader-plane__copy h2")).to_have_text("fox_003")
+    add_observation_without_viewport_jump(page)
     page.close()
     return errors
 

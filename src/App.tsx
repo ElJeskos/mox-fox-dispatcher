@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_PARAMETERS, INITIAL_OBSERVATIONS } from "./data";
 import { FormulaDialog } from "./FormulaDialog";
 import { calculateFoxReport } from "./report";
@@ -289,6 +289,8 @@ export function App() {
   const formulaDialogRef = useRef<HTMLDialogElement>(null);
   const reportHeadingRef = useRef<HTMLHeadingElement>(null);
   const worklogHeadingRef = useRef<HTMLHeadingElement>(null);
+  const observationsRef = useRef<HTMLElement>(null);
+  const pendingObservationsTopRef = useRef<number | null>(null);
   const previousViewRef = useRef<View>(view);
 
   const report = useMemo(
@@ -318,6 +320,20 @@ export function App() {
     previousViewRef.current = view;
     focusViewStart(view);
   }, [focusViewStart, view]);
+
+  useLayoutEffect(() => {
+    const previousTop = pendingObservationsTopRef.current;
+    if (previousTop === null) return;
+
+    pendingObservationsTopRef.current = null;
+    const nextTop = observationsRef.current?.getBoundingClientRect().top;
+    if (nextTop === undefined) return;
+
+    const offset = nextTop - previousTop;
+    if (Math.abs(offset) > 0.5) {
+      window.scrollBy({ top: offset, left: 0, behavior: "auto" });
+    }
+  }, [observations]);
 
   const navigateTo = (nextView: View) => {
     if (nextView === view) {
@@ -359,6 +375,12 @@ export function App() {
     };
     setObservations((current) => [...current, next]);
     setSelectedFoxId(next.fox_id);
+  };
+
+  const addObservationFromJournal = () => {
+    pendingObservationsTopRef.current =
+      observationsRef.current?.getBoundingClientRect().top ?? null;
+    addObservation();
   };
 
   const resetAll = () => {
@@ -606,7 +628,11 @@ export function App() {
             </div>
           </aside>
 
-          <section className="observations" aria-labelledby="observations-title">
+          <section
+            className="observations"
+            aria-labelledby="observations-title"
+            ref={observationsRef}
+          >
             <div className="section-heading observations__heading">
               <div>
                 <p className="eyebrow">Исходные данные</p>
@@ -614,7 +640,7 @@ export function App() {
               </div>
               <div className="observation-actions">
                 <button type="button" className="text-button" onClick={resetAll}>Вернуть исходные</button>
-                <button type="button" className="primary-button" onClick={addObservation}>+ Добавить запись</button>
+                <button type="button" className="primary-button" onClick={addObservationFromJournal}>+ Добавить запись</button>
               </div>
             </div>
             <p className="observations__hint">Все поля редактируются. Отчёт выше обновляется без перезагрузки.</p>
