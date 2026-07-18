@@ -38,6 +38,24 @@ def add_observation_without_viewport_jump(page) -> None:
     )
 
 
+def reset_observations_without_viewport_jump(page) -> None:
+    reset_observations = page.get_by_role("button", name="Вернуть исходные")
+    reset_observations.evaluate("element => element.scrollIntoView({ block: 'center' })")
+    page.wait_for_timeout(100)
+    reset_button_before = reset_observations.bounding_box()
+    assert reset_button_before is not None
+
+    reset_observations.click()
+    expect(page.locator(".observation-row")).to_have_count(5)
+
+    reset_button_after = reset_observations.bounding_box()
+    assert reset_button_after is not None
+    assert abs(reset_button_after["y"] - reset_button_before["y"]) <= 1, (
+        "Resetting observations moved the journal controls in the viewport: "
+        f"before={reset_button_before}, after={reset_button_after}"
+    )
+
+
 def validate_desktop(browser) -> list[str]:
     errors: list[str] = []
     page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
@@ -204,7 +222,7 @@ def validate_desktop(browser) -> list[str]:
     page.wait_for_timeout(150)
     page.screenshot(path=REVIEW_DIR / "desktop-data.png")
 
-    page.get_by_role("button", name="Вернуть исходные").click()
+    reset_observations_without_viewport_jump(page)
     page.get_by_role("button", name="Удалить obs_002").click()
     expect(page.locator(".report-meta")).to_contain_text("3 лисы")
     page.get_by_role("button", name="Добавить запись").click()
@@ -323,6 +341,7 @@ def validate_standalone(browser) -> list[str]:
     page.get_by_role("spinbutton", name="Подозрительность obs_003").fill("1")
     expect(page.locator(".leader-plane__copy h2")).to_have_text("fox_003")
     add_observation_without_viewport_jump(page)
+    reset_observations_without_viewport_jump(page)
     page.close()
     return errors
 

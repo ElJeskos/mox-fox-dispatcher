@@ -384,6 +384,10 @@ export function App() {
   };
 
   const resetAll = () => {
+    if (observations !== INITIAL_OBSERVATIONS) {
+      pendingObservationsTopRef.current =
+        observationsRef.current?.getBoundingClientRect().top ?? null;
+    }
     setObservations(INITIAL_OBSERVATIONS);
     setParameters(DEFAULT_PARAMETERS);
     setSelectedFoxId("fox_001");
